@@ -3,6 +3,12 @@ version: "3.4"
 services:
   microservice:
     build: ./build/pkg
+    environment:
+      MICROSERVICE_PORT: 8080
+      DB_CONNECTION_PORT: 6543
+      DB_CONNECTION_USERNAME: user
+      DB_CONNECTION_PASSWORD: pass
+      DB_CONNECTION_NAME: db
     ports:
       - "8080:80"
     container_name: reindexer_microservice
