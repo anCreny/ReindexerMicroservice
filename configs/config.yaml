@@ -1,0 +1,5 @@
+port: 8080
+db_port: 6543
+db_username: user
+db_password: pass
+db_name: db
