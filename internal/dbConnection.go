@@ -61,8 +61,8 @@ func InitDbConnection() error {
 }
 
 func fillNamespace(namespace string) error {
-	var documentsC = []int{}
-	var documentsB = []int{}
+	var documentsC = []*DocumentC{}
+	var documentsB = []*DocumentB{}
 
 	for i := 0; i < 100; i++ {
 		var docC = &DocumentC{
@@ -72,7 +72,7 @@ func fillNamespace(namespace string) error {
 		if err := databaseInstance.Upsert(namespace+"C", docC); err != nil {
 			return err
 		}
-		documentsC = append(documentsC, docC.ID)
+		documentsC = append(documentsC, docC)
 	}
 
 	for i := 0; i < 100; i++ {
@@ -84,7 +84,7 @@ func fillNamespace(namespace string) error {
 		if err := databaseInstance.Upsert(namespace+"B", docB); err != nil {
 			return err
 		}
-		documentsB = append(documentsB, docB.ID)
+		documentsB = append(documentsB, docB)
 	}
 
 	for i := 0; i < 100; i++ {
@@ -99,17 +99,17 @@ func fillNamespace(namespace string) error {
 }
 
 type DocumentA struct {
-	ID         int   `reindex:"id,,pk"`
-	DocumentsB []int `reindex:"documentsB"`
+	ID         int          `reindex:"id,,pk" json:"ID"`
+	DocumentsB []*DocumentB `reindex:"documentsB,,joined" json:"documentsb"`
 }
 
 type DocumentB struct {
-	ID         int   `reindex:"id,,pk"`
-	DocumentsC []int `reindex:"documentsC"`
-	Sort       int   `reindex:"sort,tree"`
+	ID         int          `reindex:"id,,pk"`
+	DocumentsC []*DocumentC `reindex:"documentsC,,joined" json:"documentsc"`
+	Sort       int          `reindex:"sort,tree"`
 }
 
 type DocumentC struct {
 	ID   int    `reindex:"id,,pk"`
-	Text string `reindex:"text"`
+	Text string `reindex:"text" json:"text"`
 }
