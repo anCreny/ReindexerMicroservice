@@ -5,10 +5,10 @@ services:
     build: ./build/pkg
     environment:
       MICROSERVICE_PORT: 8080
-      DB_CONNECTION_PORT: 6543
+      DB_CONNECTION_PORT: 6534
       DB_CONNECTION_USERNAME: user
       DB_CONNECTION_PASSWORD: pass
       DB_CONNECTION_NAME: db
     ports:
-      - "8080:80"
+      - "80:8080"
     container_name: reindexer_microservice
