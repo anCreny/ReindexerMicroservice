@@ -7,6 +7,7 @@ import (
 	"strconv"
 )
 
+// DeleteDocument http://localhost/deletedocument?id='int'
 func DeleteDocument(w http.ResponseWriter, r *http.Request) {
 
 	var id = r.URL.Query().Get("id")

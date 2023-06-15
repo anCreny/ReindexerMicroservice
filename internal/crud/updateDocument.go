@@ -10,6 +10,7 @@ import (
 	"strconv"
 )
 
+// UpdateDocument http://localhost/updatedocument
 func UpdateDocument(w http.ResponseWriter, r *http.Request) {
 	var db, initErr = internal.Database()
 	if initErr != nil {

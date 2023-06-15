@@ -8,6 +8,7 @@ import (
 	"net/http"
 )
 
+// CreateDocument http://localhost/createdocument
 func CreateDocument(w http.ResponseWriter, r *http.Request) {
 	var db, initErr = internal.Database()
 	if initErr != nil {
