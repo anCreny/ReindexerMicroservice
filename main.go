@@ -1,9 +1,9 @@
 package main
 
 import (
-	"RMicroService/cmd"
-	"RMicroService/internal"
-	"RMicroService/internal/crud"
+	"github.com/anCreny/ReindexerMicroservice/cmd"
+	"github.com/anCreny/ReindexerMicroservice/internal"
+	"github.com/anCreny/ReindexerMicroservice/internal/crud"
 	"fmt"
 )
 
