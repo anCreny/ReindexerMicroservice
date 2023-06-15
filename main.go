@@ -1,7 +1,26 @@
 package main
 
-import "fmt"
+import (
+	"RMicroService/cmd"
+	"RMicroService/internal"
+	"RMicroService/internal/crud"
+	"fmt"
+)
 
 func main() {
-	fmt.Println("Hello world!")
+	if err := internal.InitDbConnection(); err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	cmd.AddHandler("/getdocuments", crud.ReadDocuments)     // http://localhost/getdocument
+	cmd.AddHandler("/getonedocument", crud.ReadOneDocument) // http://localhost/getonedocument?id='number'
+
+	cmd.AddHandler("/deletedocument", crud.DeleteDocument) // http://localhost/deletedocument?id='number'
+
+	cmd.AddHandler("/createdocument", crud.CreateDocument) // http://localhost/createdocument
+
+	cmd.AddHandler("/updatedocument", crud.UpdateDocument) // http://localhost/updatedocument
+
+	cmd.RunMicroservice()
 }
