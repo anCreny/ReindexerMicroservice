@@ -47,10 +47,6 @@ func InitDbConnection() error {
 		return err
 	}
 
-	if err := db.OpenNamespace("DocumentsC", reindexer.DefaultNamespaceOptions(), DocumentC{}); err != nil {
-		return err
-	}
-
 	if _, found := db.Query("DocumentsA").Get(); !found {
 		if err := fillNamespace("Documents"); err != nil {
 			return err
@@ -61,36 +57,31 @@ func InitDbConnection() error {
 }
 
 func fillNamespace(namespace string) error {
-	var documentsC = []*DocumentC{}
-	var documentsB = []*DocumentB{}
-
-	for i := 0; i < 100; i++ {
-		var docC = &DocumentC{
-			ID:   i,
+	var documentsB_Ids = []int{}
+	var documentsC = []DocumentC{}
+	for i := 0; i < 10; i++ {
+		var docC = DocumentC{
 			Text: "Some text",
-		}
-		if err := databaseInstance.Upsert(namespace+"C", docC); err != nil {
-			return err
 		}
 		documentsC = append(documentsC, docC)
 	}
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 10; i++ {
 		var docB = &DocumentB{
-			ID:         i,
-			DocumentsC: documentsC,
-			Sort:       rand.Int(),
+			ID:             i,
+			Sort:           rand.Intn(100),
+			DocumentsCList: documentsC,
 		}
 		if err := databaseInstance.Upsert(namespace+"B", docB); err != nil {
 			return err
 		}
-		documentsB = append(documentsB, docB)
+		documentsB_Ids = append(documentsB_Ids, i)
 	}
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 10; i++ {
 		if err := databaseInstance.Upsert(namespace+"A", &DocumentA{
-			ID:         i,
-			DocumentsB: documentsB,
+			ID:             i,
+			DocumentsB_IDs: documentsB_Ids,
 		}); err != nil {
 			return err
 		}
@@ -99,17 +90,30 @@ func fillNamespace(namespace string) error {
 }
 
 type DocumentA struct {
-	ID         int          `reindex:"id,,pk" json:"ID"`
-	DocumentsB []*DocumentB `reindex:"documentsB,,joined" json:"documentsb"`
+	ID             int          `reindex:"id,,pk" json:"ID"`
+	DocumentsBList []*DocumentB `reindex:"documents_B_list,,joined"`
+	DocumentsB_IDs []int        `reindex:"documents_B_ids"`
 }
 
 type DocumentB struct {
-	ID         int          `reindex:"id,,pk"`
-	DocumentsC []*DocumentC `reindex:"documentsC,,joined" json:"documentsc"`
-	Sort       int          `reindex:"sort,tree"`
+	ID             int         `reindex:"id,,pk"`
+	DocumentsCList []DocumentC `reindex:"documents_C_list,,joined"`
+	Sort           int         `reindex:"sort,tree"`
 }
 
 type DocumentC struct {
-	ID   int    `reindex:"id,,pk"`
-	Text string `reindex:"text" json:"text"`
+	Text string `reindex:"text"`
+}
+
+type DocumentAJson struct {
+	ID             int             `json:"id"`
+	DocumentsBList []DocumentBJson `json:"documents-b-list"`
+}
+
+type DocumentBJson struct {
+	DocumentsCList []DocumentCJson `json:"documents-c-list"`
+}
+
+type DocumentCJson struct {
+	Text string `json:"text"`
 }
