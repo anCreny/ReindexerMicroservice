@@ -7,6 +7,7 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
+	"strconv"
 )
 
 func UpdateDocument(w http.ResponseWriter, r *http.Request) {
@@ -38,12 +39,7 @@ func UpdateDocument(w http.ResponseWriter, r *http.Request) {
 		var docsB = doc.DocumentsBList
 		var newDocsBJson = requestDocument.DocumentsBList
 
-		if deleteNumber, delErr := db.Query("DocumentsA").Where("id", reindexer.EQ, requestDocument.ID).Limit(1).
-			Join(db.Query("DocumentsB"), "documents_B_list").
-			On("documents_B_ids", reindexer.EQ, "id").Delete(); delErr != nil && deleteNumber == 0 {
-			w.WriteHeader(400)
-			panic(delErr)
-		}
+		deleteDocA(strconv.Itoa(doc.ID))
 
 		var newDocsB = []internal.DocumentB{}
 		var newDocsBIds = []int{}
