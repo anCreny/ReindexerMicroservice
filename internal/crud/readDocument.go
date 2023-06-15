@@ -85,6 +85,7 @@ func ReadOneDocument(w http.ResponseWriter, r *http.Request) {
 
 		} else {
 			w.WriteHeader(404)
+			return
 		}
 	}
 

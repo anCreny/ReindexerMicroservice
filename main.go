@@ -13,5 +13,6 @@ func main() {
 	}
 	cmd.AddHandler("/getdocuments", crud.ReadDocuments)
 	cmd.AddHandler("/getonedocument", crud.ReadOneDocument)
+	cmd.AddHandler("/deletedocument", crud.DeleteDocument)
 	cmd.RunMicroservice()
 }
