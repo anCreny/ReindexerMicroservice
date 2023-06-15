@@ -51,7 +51,7 @@ func UpdateDocument(w http.ResponseWriter, r *http.Request) {
 		for i := 0; i < len(newDocsBJson); i++ {
 			var newId int
 			if i+1 > len(docsB) {
-				newId = getUniqId()
+				newId = getUniqId("DocumentsB")
 			} else {
 				newId = docsB[i].ID
 			}
@@ -103,6 +103,8 @@ func UpdateDocument(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
+	w.WriteHeader(200)
+
 }
 
 func convertJsonsToDocsC(documentsCJson []internal.DocumentCJson) []internal.DocumentC {
@@ -115,7 +117,7 @@ func convertJsonsToDocsC(documentsCJson []internal.DocumentCJson) []internal.Doc
 	return result
 }
 
-func getUniqId() int {
+func getUniqId(namespace string) int {
 	var result int
 
 	var db, initErr = internal.Database()
@@ -123,12 +125,12 @@ func getUniqId() int {
 		panic(initErr)
 	}
 
-	query := db.Query("DocumentsB")
+	query := db.Query(namespace)
 
 	if collection, err := query.Exec().FetchAll(); err == nil {
 		result = len(collection) + 1
 		for {
-			foundQ := db.Query("DocumentsB").Where("id", reindexer.EQ, result)
+			foundQ := db.Query(namespace).Where("id", reindexer.EQ, result)
 			if _, foundErr := foundQ.Exec().FetchOne(); foundErr != nil {
 				break
 			}
