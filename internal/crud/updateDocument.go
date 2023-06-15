@@ -1,7 +1,7 @@
 package crud
 
 import (
-	"RMicroService/internal"
+	"github.com/anCreny/ReindexerMicroservice/internal"
 	"encoding/json"
 	"github.com/restream/reindexer/v3"
 	"io"
