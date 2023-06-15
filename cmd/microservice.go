@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"RMicroService/internal"
+	"github.com/anCreny/ReindexerMicroservice/internal"
 	"fmt"
 	"net/http"
 )
