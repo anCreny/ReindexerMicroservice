@@ -1,4 +1,4 @@
-module RMicroService
+module github.com/anCreny/ReindexerMicroservice
 
 go 1.20
 
