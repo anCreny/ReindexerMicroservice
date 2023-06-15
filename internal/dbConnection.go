@@ -58,6 +58,7 @@ func InitDbConnection() error {
 
 func fillNamespace(namespace string) error {
 	var documentsB_Ids = []int{}
+
 	var documentsC = []DocumentC{}
 	for i := 0; i < 10; i++ {
 		var docC = DocumentC{
@@ -66,7 +67,7 @@ func fillNamespace(namespace string) error {
 		documentsC = append(documentsC, docC)
 	}
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 100; i++ {
 		var docB = &DocumentB{
 			ID:             i,
 			Sort:           rand.Intn(100),
@@ -78,14 +79,24 @@ func fillNamespace(namespace string) error {
 		documentsB_Ids = append(documentsB_Ids, i)
 	}
 
-	for i := 0; i < 10; i++ {
-		if err := databaseInstance.Upsert(namespace+"A", &DocumentA{
-			ID:             i,
-			DocumentsB_IDs: documentsB_Ids,
-		}); err != nil {
-			return err
+	var docAId int
+	var tempDocsBIds = []int{}
+
+	for i := 0; i < 100; i++ {
+
+		if i%10 == 0 && i != 0 {
+			if err := databaseInstance.Upsert(namespace+"A", &DocumentA{
+				ID:             docAId,
+				DocumentsB_IDs: tempDocsBIds,
+			}); err != nil {
+				return err
+			}
+			docAId++
+			tempDocsBIds = []int{}
 		}
+		tempDocsBIds = append(tempDocsBIds, documentsB_Ids[i])
 	}
+
 	return nil
 }
 
