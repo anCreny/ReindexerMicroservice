@@ -2,6 +2,7 @@ package internal
 
 import (
 	"github.com/restream/reindexer/v3"
+	"math/rand"
 )
 import _ "github.com/restream/reindexer/v3/bindings/cproto"
 
@@ -38,11 +39,11 @@ func InitDbConnection() error {
 
 	databaseInstance = db
 
-	if err := db.OpenNamespace("DocumentsA", reindexer.DefaultNamespaceOptions(), Document{}); err != nil {
+	if err := db.OpenNamespace("Documents", reindexer.DefaultNamespaceOptions(), Document{}); err != nil {
 		return err
 	}
 
-	if _, found := db.Query("DocumentsA").Get(); !found {
+	if _, found := db.Query("Documents").Get(); !found {
 		if err := fillNamespace("Documents"); err != nil {
 			return err
 		}
@@ -65,8 +66,8 @@ func fillNamespace(namespace string) error {
 		}
 
 		if err := databaseInstance.Upsert(namespace, Document{
-			DocumentsBList: nil,
-			Sort:           0,
+			DocumentsBList: DocumentsB,
+			Sort:           rand.Intn(100),
 		}, "id=serial()"); err != nil {
 			return err
 		}
