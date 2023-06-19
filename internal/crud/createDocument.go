@@ -29,7 +29,7 @@ func CreateDocument(w http.ResponseWriter, r *http.Request) {
 
 	var newDoc = convertFromJsonToDoc(reqDocument)
 
-	if status, err := db.Insert("DocumentsA", newDoc, "id=serial()"); status == 0 && err != nil {
+	if status, err := db.Insert("Documents", newDoc, "id=serial()"); status == 0 && err != nil {
 		panic(err)
 	}
 
