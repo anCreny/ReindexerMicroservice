@@ -16,6 +16,7 @@ Req:
 
 ## Description
 
+### CRUD
 After start the microservice you can use the following path to opete CRUD:
 
 - **CREATE** to create new document in database u should use `http://localhost:your_port*/createdocument`
@@ -26,6 +27,14 @@ After start the microservice you can use the following path to opete CRUD:
 - **DELETE** to delete document in database u can use `http://localhost:your_port*/deletedocument?id=` (will be responded HTTP 400 if id was incorrect)
 
 \* see **Configs**
+
+### Others
+- If you read one document, it would be cached with timeout 15 minutes. Methods **DELETE** and **UPDATE** touch apon cache in real time
+- **READ** method has pagination, you can use query params to provide it: `http://localhost:your_port/readdocuments?limit=5&page=2`:
+  - *page* - number of page
+  - *limit* - how many documents will be on each page
+
+
 
 ## Configs
 The microservice supports config. You can configure the following options:
@@ -48,6 +57,7 @@ You can prodive config in two ways:
   db_name: db
   ```
   Path to file: `root/build/pkg/configs/config.yaml`
+
 2. Via environment variables:
   Edit `docker-compose.yml` file to prodive configs
   Fields:
@@ -61,8 +71,8 @@ You can prodive config in two ways:
   ```
   Path to file: `root/build/pkg/docker-compose.yml`
 
-## P.S.
-1. default values for config variable you can see in both env and yaml examples
+### P.S.
+1. Default values for config variable you can see in both env and yaml examples
 
-2. configs follow the following action pattern:
+2. Configs follow the following action pattern:
   If env variable empty -> check variable from YAML file, if it also empty -> use default value for the variable
