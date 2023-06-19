@@ -1,9 +1,8 @@
 package crud
 
 import (
-	"github.com/anCreny/ReindexerMicroservice/internal"
 	"encoding/json"
-	"fmt"
+	"github.com/anCreny/ReindexerMicroservice/internal"
 	"github.com/restream/reindexer/v3"
 	"net/http"
 	"strconv"
@@ -14,11 +13,11 @@ import (
 var cachedDocuments = make(map[int]cachedDocument)
 
 type cachedDocument struct {
-	document internal.DocumentAJson
+	document internal.DocumentJson
 	timer    *time.Timer
 }
 
-func cacheDocument(document internal.DocumentAJson) {
+func cacheDocument(document internal.DocumentJson) {
 	if cachedDoc, found := cachedDocuments[document.ID]; found {
 		cachedDoc.timer.Stop()
 	}
@@ -26,26 +25,26 @@ func cacheDocument(document internal.DocumentAJson) {
 	cachedDocuments[document.ID] = cachedDocument{document, timeout}
 	go func() {
 		<-timeout.C
-		tryDeleteCachedDocument(document.ID)
+		deleteCachedDocument(document.ID)
 	}()
 }
 
-func tryUpdateCachedDocument(document internal.DocumentAJson) {
+func updateCachedDocumentIfExists(document internal.DocumentJson) {
 	if value, found := cachedDocuments[document.ID]; found {
 		cachedDocuments[document.ID] = cachedDocument{document, value.timer}
 	}
 }
 
-func tryDeleteCachedDocument(id int) {
+func deleteCachedDocument(id int) {
 	delete(cachedDocuments, id)
 }
 
-func tryGetCachedDocument(id int) (internal.DocumentAJson, bool) {
+func tryGetCachedDocument(id int) (internal.DocumentJson, bool) {
 	if value, found := cachedDocuments[id]; found {
 		return value.document, true
 	}
 
-	return internal.DocumentAJson{}, false
+	return internal.DocumentJson{}, false
 }
 
 // ReadOneDocument http://localhost/getonedocument?id='int'
@@ -56,79 +55,15 @@ func ReadOneDocument(w http.ResponseWriter, r *http.Request) {
 		panic(initErr)
 	}
 
-	var response internal.DocumentAJson
-
 	var intId, err = strconv.Atoi(id)
 	if err != nil {
 		panic(err)
 	}
 
-	var isCached bool
-
 	if value, found := tryGetCachedDocument(intId); found {
-		response = value
-		isCached = true
-	} else {
-		var query = db.Query("DocumentsA").
-			Where("id", reindexer.EQ, id).Limit(1).
-			Join(db.Query("DocumentsB"), "documents_B_list").
-			On("documents_B_ids", reindexer.EQ, "id").
-			Sort("sort", true)
+		var response = value
 
-		if result, err1 := query.Exec().FetchOne(); err1 == nil {
-
-			var doc = *result.(*internal.DocumentA)
-
-			var resChan = make(chan internal.DocumentAJson)
-			go processDocument(doc, resChan, nil)
-			response = <-resChan
-
-		} else {
-			w.WriteHeader(404)
-			return
-		}
-	}
-
-	if jsonResponse, respErr := json.Marshal(response); respErr == nil {
-		if !isCached {
-			cacheDocument(response)
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(jsonResponse)
-	} else {
-		panic(err)
-	}
-
-}
-
-// ReadDocuments http://localhost/getdocuments
-func ReadDocuments(w http.ResponseWriter, r *http.Request) {
-	var db, initErr = internal.Database()
-	if initErr != nil {
-		panic(initErr)
-	}
-
-	queryA := db.Query("DocumentsA").
-		Join(db.Query("DocumentsB"), "documents_B_list").
-		On("documents_B_ids", reindexer.EQ, "id").
-		Sort("sort", true)
-
-	if documents, err2 := queryA.Exec().FetchAll(); err2 == nil {
-		var length = len(documents)
-		var group sync.WaitGroup
-		var resultChan = make(chan internal.DocumentAJson, length)
-		group.Add(length)
-		for _, value := range documents {
-			go processDocument(*value.(*internal.DocumentA), resultChan, &group)
-		}
-		group.Wait()
-		close(resultChan)
-		var response = []internal.DocumentAJson{}
-		for formattedDocument := range resultChan {
-			response = append(response, formattedDocument)
-		}
-
-		if jsonResponse, err := json.Marshal(response); err == nil {
+		if jsonResponse, respErr := json.Marshal(response); respErr == nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.Write(jsonResponse)
 		} else {
@@ -136,26 +71,95 @@ func ReadDocuments(w http.ResponseWriter, r *http.Request) {
 		}
 
 	} else {
-		fmt.Fprint(w, err2)
+		var readQuery = db.Query("DocumentsA").
+			Where("id", reindexer.EQ, id).Limit(1)
+
+		if result, readErr := readQuery.Exec().FetchOne(); readErr == nil {
+
+			var response = convertFromDocToJson(result.(internal.Document))
+
+			if jsonResponse, respErr := json.Marshal(response); respErr == nil {
+				cacheDocument(response)
+				w.Header().Set("Content-Type", "application/json")
+				w.Write(jsonResponse)
+			} else {
+				panic(err)
+			}
+
+		} else {
+			w.WriteHeader(404)
+			return
+		}
 	}
 }
 
-func processDocument(documentA internal.DocumentA, output chan internal.DocumentAJson, group *sync.WaitGroup) {
-	defer func() {
-		if group != nil {
-			group.Done()
-		}
-	}()
+// ReadDocuments http://localhost/getdocuments
+func ReadDocuments(w http.ResponseWriter, r *http.Request) {
+	var pageNumberStr = r.URL.Query().Get("page")
+	var limitStr = r.URL.Query().Get("limit")
 
-	var documentAJson = internal.DocumentAJson{ID: documentA.ID}
+	var pageNumber, _ = strconv.Atoi(pageNumberStr)
+	var limit, _ = strconv.Atoi(limitStr)
 
-	for _, value := range documentA.DocumentsBList {
-		var documentsCJsonTemp = []internal.DocumentCJson{}
-		for _, value2 := range value.DocumentsCList {
-			documentsCJsonTemp = append(documentsCJsonTemp, internal.DocumentCJson{Text: value2.Text})
-		}
-		documentAJson.DocumentsBList = append(documentAJson.DocumentsBList, internal.DocumentBJson{documentsCJsonTemp})
+	var offset int
+
+	pageNumber--
+	if pageNumber <= 0 {
+		pageNumber = 1
+		offset = 0
+	} else {
+		offset = limit * pageNumber
 	}
 
-	output <- documentAJson
+	var db, initErr = internal.Database()
+	if initErr != nil {
+		panic(initErr)
+	}
+
+	var readQuery *reindexer.Query
+
+	if limit > 0 {
+		readQuery = db.Query("Documents").Offset(offset).Limit(limit).Sort("sort", true)
+	} else {
+		readQuery = db.Query("Documents").Sort("sort", true)
+	}
+
+	if qResult, readErr := readQuery.Exec().FetchAll(); readErr == nil {
+
+		var length = len(qResult)
+
+		var docsJson = make([]internal.DocumentJson, length)
+		var waitGroup = sync.WaitGroup{}
+
+		waitGroup.Add(length)
+		for i, elem := range qResult {
+			go func(index int, doc internal.Document) {
+				defer waitGroup.Done()
+				docsJson[index] = convertFromDocToJson(doc)
+			}(i, *elem.(*internal.Document))
+		}
+		waitGroup.Wait()
+
+		if response, marshErr := json.Marshal(docsJson); marshErr == nil {
+			if _, wErr := w.Write(response); wErr != nil {
+				w.WriteHeader(404)
+				panic(wErr)
+			}
+		} else {
+			panic(marshErr)
+		}
+
+	} else {
+		w.WriteHeader(404)
+		panic(readErr)
+	}
+}
+
+func convertFromDocToJson(document internal.Document) internal.DocumentJson {
+	var result = internal.DocumentJson{
+		ID:             document.ID,
+		DocumentsBList: document.DocumentsBList,
+	}
+
+	return result
 }
