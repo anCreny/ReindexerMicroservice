@@ -9,46 +9,24 @@ import (
 
 // DeleteDocument http://localhost/deletedocument?id='int'
 func DeleteDocument(w http.ResponseWriter, r *http.Request) {
-
-	var id = r.URL.Query().Get("id")
-
-	deleteDocA(id)
-
-	if id, err := strconv.Atoi(id); err == nil {
-		tryDeleteCachedDocument(id)
-	} else {
-		panic(err)
-	}
-
-	w.WriteHeader(200)
-}
-
-func deleteDocA(id string) {
 	var db, initErr = internal.Database()
 	if initErr != nil {
 		panic(initErr)
 	}
 
-	var deleteId = id
+	var delId = r.URL.Query().Get("id")
 
-	query := db.Query("DocumentsA").
-		Where("id", reindexer.EQ, deleteId).Limit(1)
+	var delQuery = db.Query("Documents").Where("id", reindexer.EQ, delId)
 
-	if result, err := query.Exec().FetchOne(); err == nil {
-		var doc = *result.(*internal.DocumentA)
-		for _, docBId := range doc.DocumentsB_IDs {
-			if _, err := db.Query("DocumentsB").Where("id", reindexer.EQ, docBId).Delete(); err != nil {
-				panic(err)
-			}
-		}
+	if _, delErr := delQuery.Delete(); delErr != nil {
+		panic(delErr)
+	}
+
+	if id, err := strconv.Atoi(delId); err == nil {
+		deleteCachedDocument(id)
 	} else {
 		panic(err)
 	}
 
-	deleteQuery := db.Query("DocumentsA").Where("id", reindexer.EQ, id)
-
-	if _, err := deleteQuery.Delete(); err != nil {
-		panic(err)
-	}
-
+	w.WriteHeader(200)
 }
