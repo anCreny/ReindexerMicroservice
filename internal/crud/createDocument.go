@@ -1,8 +1,8 @@
 package crud
 
 import (
-	"github.com/anCreny/ReindexerMicroservice/internal"
 	"encoding/json"
+	"github.com/anCreny/ReindexerMicroservice/internal"
 	"io"
 	"math/rand"
 	"net/http"
@@ -21,44 +21,27 @@ func CreateDocument(w http.ResponseWriter, r *http.Request) {
 		panic(bodyErr)
 	}
 
-	var reqDocument internal.DocumentAJson
+	var reqDocument internal.DocumentJson
 	if unmErr := json.Unmarshal(body, &reqDocument); unmErr != nil {
 		w.WriteHeader(400)
 		panic(unmErr)
 	}
 
-	var newDocA internal.DocumentA
-	var newDocsB = []internal.DocumentB{}
-	var newDocsBIds = []int{}
+	var newDoc = convertFromJsonToDoc(reqDocument)
 
-	for _, docBJson := range reqDocument.DocumentsBList {
-		var newDocB internal.DocumentB
-		newDocB = internal.DocumentB{
-			ID:             getUniqId("DocumentsB"),
-			DocumentsCList: convertJsonsToDocsC(docBJson.DocumentsCList),
-			Sort:           rand.Intn(len(reqDocument.DocumentsBList)),
-		}
-		newDocsB = append(newDocsB, newDocB)
-		newDocsBIds = append(newDocsBIds, newDocB.ID)
-	}
-
-	for _, newDocB := range newDocsB {
-		if status, err := db.Insert("DocumentsB", newDocB); status == 0 && err != nil {
-			panic(err)
-		}
-	}
-
-	var newAId = getUniqId("DocumentsA")
-
-	newDocA = internal.DocumentA{
-		ID:             newAId,
-		DocumentsBList: nil,
-		DocumentsB_IDs: newDocsBIds,
-	}
-
-	if status, err := db.Insert("DocumentsA", newDocA); status == 0 && err != nil {
+	if status, err := db.Insert("DocumentsA", newDoc, "id=serial()"); status == 0 && err != nil {
 		panic(err)
 	}
 
 	w.WriteHeader(200)
+}
+
+func convertFromJsonToDoc(docJson internal.DocumentJson) internal.Document {
+	var result = internal.Document{
+		ID:             docJson.ID,
+		DocumentsBList: docJson.DocumentsBList,
+		Sort:           rand.Intn(100),
+	}
+
+	return result
 }
